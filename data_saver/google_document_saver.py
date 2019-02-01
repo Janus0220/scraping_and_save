@@ -35,7 +35,7 @@ class GoogleDocumentWriter:
         if drive_auth:
             self.drive_instance = GoogleDriveGetter()
 
-    def write_data(self, spread_sheet_path, worksheet_name, data, op_spread_sheet_id=False):
+    def write_data(self, op_spread_sheet_id, data, spread_sheet_path=None, worksheet_name=None):
         # パスの中に目的のファイルが存在するかどうかを確認する。
         parents_id = "root"
         if not op_spread_sheet_id:
@@ -64,8 +64,6 @@ class GoogleDocumentWriter:
         # 行列の形をexcelの順序にする
         excel_column = openpyxl.utils.get_column_letter(int(np.shape(data)[1]))
         excel_row = np.shape(data)[0]
-
-        # 以前のワークシートの内容を削除する。
 
         # セルの値をまとめて更新する
         data = data.fillna(0)

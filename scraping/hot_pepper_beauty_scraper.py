@@ -1,0 +1,64 @@
+# 標準ライブラリ
+import os
+import logging
+import sys
+
+# サードパーティライブラリ
+
+# 自作ライブラリ
+sys.path.append("..")
+from data_getter.hotpepper_beauty_getter import DataGetterFromHotPepperBeauty
+from data_saver.google_document_saver import GoogleDocumentWriter
+from .base_scraper import BaseScraper
+
+# ロガーの設置
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
+# モジュールへのパス
+MODULE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# settingへのパス
+SETTINGS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "settings")
+# データ保管場所へのパス
+DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tmp")
+
+
+class HotPepperBeautyScraper(BaseScraper):
+    def __init__(self, freeword: str, search_gender: str, db_name: str, db_section: str ,
+                 drive_auth: bool):
+        super().__init__(freeword=freeword)
+        self.inst_getter = DataGetterFromHotPepperBeauty(freeword=freeword, search_gender=search_gender,
+                                                         db_name=db_name, db_section=db_section)
+        self.inst_saver = GoogleDocumentWriter(drive_auth=drive_auth)
+
+    def get_and_save_data(self, search_length, op_spread_sheet_id):
+        result = self.inst_getter.get_page(search_length=search_length)
+        self.inst_saver.write_data(data=result, op_spread_sheet_id=op_spread_sheet_id)
+
+
+def main():
+    formatter = '%(levelname)s - %(asctime)s - From %(name)s : %(message)s'
+    logging.basicConfig(level=logging.INFO, format=formatter)
+    logger.info("{}を実行します。".format(__name__))
+
+    # 引数
+    freeword = "東京都"
+    search_gender = "ALL"
+    db_name = "HotPepperBeauty"
+    db_section = "test"
+    drive_auth = False
+    search_length = 1000
+    op_spread_sheet_id = ""
+
+    HotPepperBeautyScraper(freeword=freeword, search_gender=search_gender, db_name=db_name, db_section=db_section,
+                           drive_auth=drive_auth).get_and_save_data(search_length=search_length,
+                                                                    op_spread_sheet_id=op_spread_sheet_id)
+    logger.info("{}を終了します。".format(__name__))
+
+
+if __name__ == '__main__':
+    main()
+
+
+
+
