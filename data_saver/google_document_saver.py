@@ -16,6 +16,10 @@ import numpy as np
 
 # モジュールへのパス
 MODULE_PATH = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+# settingへのパス
+SETTINGS_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "settings")
+# データ保管場所へのパス
+DATA_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "tmp")
 
 # 自作ライブラリ
 sys.path.append(MODULE_PATH)
@@ -35,7 +39,7 @@ class GoogleDocumentWriter:
         if drive_auth:
             self.drive_instance = GoogleDriveGetter()
 
-    def write_data(self, op_spread_sheet_id, data, spread_sheet_path=None, worksheet_name=None):
+    def write_data(self, op_spread_sheet_id, data, worksheet_name="シート1", spread_sheet_path=None):
         # パスの中に目的のファイルが存在するかどうかを確認する。
         parents_id = "root"
         if not op_spread_sheet_id:
@@ -59,6 +63,8 @@ class GoogleDocumentWriter:
 
         # ワークシートの獲得
         worksheet = gsfile.worksheet(worksheet_name)
+
+        # 以前に書かれた項目の削除
         worksheet.clear()
 
         # 行列の形をexcelの順序にする
@@ -96,9 +102,9 @@ class GoogleDocumentWriter:
     def get_credentials():
         # 認証を行う。
         scorps = "https://www.googleapis.com/auth/spreadsheets"
-        client_secret_path = os.path.join(MODULE_PATH, 'client_secrets.json')
+        client_secret_path = os.path.join(SETTINGS_PATH, 'client_secrets.json')
         application_name = 'Google Sheets API Python Quickstart'
-        credential_path = os.path.join(MODULE_PATH, 'sheets.googleapis.com-python-quickstart.json')
+        credential_path = os.path.join(SETTINGS_PATH, 'sheets.googleapis.com-python-quickstart.json')
         store = Storage(credential_path)
         credentials = store.get()
 

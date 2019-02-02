@@ -31,15 +31,17 @@ class MongoSaver:
 
     def save_data(self, result):
         self.collection.insert_one(result)
-        logger.info("Mongodb(db_name: {}, db_section: {})へのデータの{}件の書き込みを終了します。".format(self.db_name,
-                                                                                       self.db_section, len(result)))
+        logger.info("Mongodb(db_name: {}, db_section: {})へのデータの書き込みを終了します。".format(self.db_name,
+                                                                                       self.db_section))
 
-    def conv_all_data_to_dataframe(self, save_dict, key, value, num=None):
+    def conv_all_data_to_dataframe(self, save_dict, key, value, num=False):
         logger.info("Mongodb(db_name: {}, db_section: {})のデータをデータフレームへ変換します。".format(self.db_name,
                                                                                      self.db_section))
         if not num:
             num = self.collection.find({key: value}).count()
-        for value in self.collection.find({""}).limit(num):
+            print(num)
+        for value in self.collection.find({key: value}).limit(num):
             for key in value.keys():
-                save_dict[key].append(value[key])
+                if key in save_dict.keys():
+                    save_dict[key].append(value[key])
         return pd.DataFrame(save_dict)

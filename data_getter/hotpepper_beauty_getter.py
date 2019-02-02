@@ -66,27 +66,39 @@ class DataGetterFromHotPepperBeauty:
                     error_num += 1
                     time.sleep(10 * 60)
 
+                except Exception as e:
+                    logger.error("関数get_pageにおいて予期せぬエラーが発生したため{}ページ目で"
+                                 "取得を終了します。".format(search_num))
+                    logger.error("詳細な内容\n{}".format(e.args))
+                    return self.inst_saver.conv_all_data_to_dataframe(save_dict=save_dict, key="取得日時",
+                                                                      value=self.date)
+
             for url in nextlist:
-                logger.info("現在url:{}を取得しています。".format(url))
-                result = self.get_data(url, freeword=self.freeword, date=self.date)
+                try:
+                    logger.info("現在url:{}を取得しています。".format(url))
+                    result = self.get_data(url, freeword=self.freeword, date=self.date)
+                except Exception as e:
+                    logger.error("関数get_dataにおいて予期せぬエラーが発生したため{}ページ目で"
+                                  "取得を終了します。".format(search_num))
+                    logger.error("詳細な内容\n{}".format(e.args))
+                    return self.inst_saver.conv_all_data_to_dataframe(save_dict=save_dict, key="取得日時",
+                                                                      value=self.date)
+
                 if (result["店名"] != 0) and (result["住所"] != 0):
                     self.inst_saver.save_data(result=result)
-                    logger.info("\n\ttitle: {店名}\n\taddress: {住所}\n\tregular_holiday: {定休日}\n\t"
-                                "site_url: {お店のホームページ}\n\thb_url: {ホットペッパービューティ上のHP}\n\t"
-                                "num_seat: {席数}\n\tnum_staff: {スタッフ数}\n\tjob_url: {スタッフ募集}\n\t"
-                                "total_kuchikomi: {総合:.5f}\n\ttotal_kuchikomi_num: {口コミ総数}"
-                                "\n\ttel: {電話番号}\t".format(**result))
+                    logger.info("店名: {店名}の情報の取得を完了しました。".format(**result))
                     # 個々のページを取得する間のブレークタイム
-                    time.sleep(0.5)
+                    time.sleep(2)
 
-            logger.info("新たな一括ページを取得するために、10秒間スリープします。")
             iter_num += 1
-            if int(math.ceil(num_store / 30)) < iter_num:
+            if int(math.ceil(num_store / 30)) < iter_num or search_length <= iter_num:
                 logger.info("HotPepperBeautyの検索結果が尽きました。")
-                return None
+                return self.inst_saver.conv_all_data_to_dataframe(save_dict=save_dict, key="取得日時", value=self.date)
             # 一括のページを取得する間のブレークタイム
+            logger.info("新たな一括ページを取得するために、2秒間スリープします。")
             time.sleep(5)
 
+        # if文しなかったときのための予備
         return self.inst_saver.conv_all_data_to_dataframe(save_dict=save_dict, key="取得日時", value=self.date)
 
     def get_data(self, url: str, freeword: str, date: str) -> dict:
@@ -148,6 +160,7 @@ class DataGetterFromHotPepperBeauty:
 
                 else:
                     html = lxml.html.fromstring(req.text)
+                    logger.info("電話番号の取得に成功しました。")
                     return [i.text_content() for i in html.cssselect("td.fs16.b")][0].split("\xa0")[0]
 
             except ConnectionError:
@@ -175,8 +188,9 @@ class DataGetterFromHotPepperBeauty:
             try:
                 req = requests.get(review_url)
                 if int(req.status_code) != 200:
-                    logger.error("Error {}: このページ{}を取得出来ません。".format(req.status_code, review_url))
-                    return result_dict
+                    logger.error("Error {}: このページ{}を取得出来ませんでした。".format(req.status_code, review_url))
+                    error_num += 1
+                    continue
 
                 else:
                     html = lxml.html.fromstring(req.text)
@@ -184,6 +198,7 @@ class DataGetterFromHotPepperBeauty:
                         total_kuchikomi = int([i.text_content() for i in html.cssselect("span.numberOfResult")][0])
                         result_dict["口コミ総数"] = total_kuchikomi
 
+                    logger.info("URL {} における口コミ({}ページ目)を取得しています。".format(review_url, iter_num))
                     result_dict["総合"] += sum([int(i.text_content()) for i in html.cssselect("span.mL5.mR10.fgPink")])
                     result_dict["雰囲気"] += sum([int(j.text_content()) for i, j in
                                                enumerate(html.cssselect("span.mL10.fgPink.b")) if (i + 1) % 4 == 1])
@@ -198,10 +213,18 @@ class DataGetterFromHotPepperBeauty:
                 logger.warning("{}でConnection Errorが発生しました。".format(review_url))
                 error_num += 1
                 time.sleep(5)
+                continue
 
             except IndexError:
                 logger.info("{}は口コミが存在しません。".format(url))
                 return result_dict
+
+            except requests.exceptions.ChunkedEncodingError:
+                logger.warning("{}の取得中に{}が発生しました。".format(review_url,
+                                                          "requests.exceptions.ChunkedEncodingError"))
+                error_num += 1
+                time.sleep(5)
+                continue
 
             iter_num += 1
             time.sleep(1)
@@ -226,7 +249,7 @@ class DataGetterFromHotPepperBeauty:
 def main():
     keywords_list = ["東京都"]
     search_gender = "ALL"
-    search_length = 5
+    search_length = 1000
     db_name = "HotPepperBeauty"
     db_section = "test"
     DataGetterFromHotPepperBeauty.get_and_save_all_data(keywords=keywords_list, search_gender=search_gender,
