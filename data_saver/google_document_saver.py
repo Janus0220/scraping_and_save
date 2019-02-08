@@ -98,6 +98,9 @@ class GoogleDocumentWriter:
         worksheet.update_cells(cell_list=cell_list)
         logger.info("ファイルID:{} に書き込みが完了しました。".format(spread_sheet_id))
 
+    def write_continuing_data(self, op_spread_sheet_id, data, worksheet_name="シート1", spread_sheet_path=None):
+        pass
+
     @staticmethod
     def get_credentials():
         # 認証を行う。

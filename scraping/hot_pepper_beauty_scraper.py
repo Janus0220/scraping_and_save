@@ -32,10 +32,12 @@ class HotPepperBeautyScraper(BaseScraper):
         self.drive_auth = drive_auth
 
     def get_and_save_data(self, search_length, op_spread_sheet_id, worksheet_name):
-        result = self.inst_getter.get_page(search_length=search_length)
-        GoogleDocumentWriter(drive_auth=self.drive_auth).write_data(data=result,
-                                                                    op_spread_sheet_id=op_spread_sheet_id,
-                                                                    worksheet_name=worksheet_name)
+        per = 10
+        for i in range(1, search_length, per):
+            result = self.inst_getter.get_page(search_start=i, search_end=i+per)
+            GoogleDocumentWriter(drive_auth=self.drive_auth).write_existing_data(data=result,
+                                                                                 op_spread_sheet_id=op_spread_sheet_id,
+                                                                                 worksheet_name=worksheet_name)
 
 
 def main():

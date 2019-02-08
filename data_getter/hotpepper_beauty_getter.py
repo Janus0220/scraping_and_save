@@ -31,15 +31,16 @@ class DataGetterFromHotPepperBeauty:
         self.search_gender = search_gender
         self.inst_saver = MongoSaver(db_name=db_name, db_section=db_section)
 
-    def get_page(self, search_length: int) -> pd.DataFrame():
+    def get_page(self, search_start: int, search_end: int) -> pd.DataFrame():
         """　~/freewordSearch/のURLから各情報を取得します。この領域は、robots.txtからスクレイピング自体がDISALLOWであるので、
         　　 十分に間隔を開けて、スクレイピングする事を心掛けます。"""
         save_dict = {"取得日時": [], "検索語句": [], "店名": [], "住所": [], "定休日": [],
                      "お店のホームページ": [], "席数": [], "スタッフ数": [], "スタッフ募集": [],
                      "ホットペッパービューティ上のHP": [], "電話番号": [], "口コミ総数": [], "総合": [],
-                     "雰囲気": [], "接客サービス": [], "技術・仕上がり": [], "メニュー・料金": []}
+                     "雰囲気": [], "接客サービス": [], "技術・仕上がり": [], "メニュー・料金": [],
+                     "採用email": []}
 
-        for search_num in range(1, search_length):
+        for search_num in range(search_start, search_end):
             iter_num = 1
             num_store = 0
             error_num = 0
@@ -79,7 +80,7 @@ class DataGetterFromHotPepperBeauty:
                     result = self.get_data(url, freeword=self.freeword, date=self.date)
                 except Exception as e:
                     logger.error("関数get_dataにおいて予期せぬエラーが発生したため{}ページ目で"
-                                  "取得を終了します。".format(search_num))
+                                 "取得を終了します。".format(search_num))
                     logger.error("詳細な内容\n{}".format(e.args))
                     return self.inst_saver.conv_all_data_to_dataframe(save_dict=save_dict, key="取得日時",
                                                                       value=self.date)
@@ -91,7 +92,7 @@ class DataGetterFromHotPepperBeauty:
                     time.sleep(2)
 
             iter_num += 1
-            if int(math.ceil(num_store / 30)) < iter_num or search_length <= iter_num:
+            if int(math.ceil(num_store / 30)) < iter_num or search_end <= iter_num:
                 logger.info("HotPepperBeautyの検索結果が尽きました。")
                 return self.inst_saver.conv_all_data_to_dataframe(save_dict=save_dict, key="取得日時", value=self.date)
             # 一括のページを取得する間のブレークタイム
@@ -105,7 +106,7 @@ class DataGetterFromHotPepperBeauty:
         result_dict = {"取得日時": date, "検索語句": freeword, "店名": None, "住所": None, "定休日": None,
                        "お店のホームページ": None, "席数": None, "スタッフ数": None, "スタッフ募集": None,
                        "ホットペッパービューティ上のHP": None, "電話番号": None, "口コミ総数": 0, "総合": 0,
-                       "雰囲気": 0, "接客サービス": 0, "技術・仕上がり": 0, "メニュー・料金": 0}
+                       "雰囲気": 0, "接客サービス": 0, "技術・仕上がり": 0, "メニュー・料金": 0, "採用email": None}
         error_num = 0
         extractor = URLExtract()
         while True:
@@ -127,6 +128,8 @@ class DataGetterFromHotPepperBeauty:
                     result_dict["ホットペッパービューティ上のHP"] = url
                     kuchikomi_dict = self.get_kuchikomi(url.split("?")[0] + "review/")
                     result_tmp.update(kuchikomi_dict)
+                    email_dict = self.get_email(url)
+                    result_tmp.update(email_dict)
 
                     for key in result_tmp.keys():
                         if key in result_dict.keys():
@@ -236,25 +239,31 @@ class DataGetterFromHotPepperBeauty:
                 result_dict["メニュー・料金"] = result_dict["メニュー・料金"] / total_kuchikomi
                 return result_dict
 
+    @staticmethod
+    def get_email(url):
+        result_dic = {"採用email": None}
+        return result_dic
+
     @classmethod
-    def get_and_save_all_data(cls, keywords: list, search_gender: str, search_length: int, db_name: str,
-                              db_section: str) -> None:
+    def get_and_save_all_data(cls, keywords: list, search_gender: str, search_start: int, search_end: int,
+                              db_name: str, db_section: str) -> None:
         for keyword in keywords:
             logger.info("現在キーワード{}を検索しています。".format(keyword))
             inst = cls(freeword=keyword, search_gender=search_gender, db_section=db_section, db_name=db_name)
-            inst.get_page(search_length=search_length)
+            inst.get_page(search_start=search_start, search_end=search_end)
             logger.info("キーワード{}を終了します。".format(keyword))
 
 
 def main():
     keywords_list = ["東京都"]
     search_gender = "ALL"
-    search_length = 1000
+    search_start = 1
+    search_end = 1000
     db_name = "HotPepperBeauty"
     db_section = "test"
     DataGetterFromHotPepperBeauty.get_and_save_all_data(keywords=keywords_list, search_gender=search_gender,
-                                                        search_length=search_length, db_section=db_section,
-                                                        db_name=db_name)
+                                                        search_start=search_start, search_end=search_end,
+                                                        db_section=db_section, db_name=db_name)
 
 
 if __name__ == '__main__':
