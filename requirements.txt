@@ -32,7 +32,7 @@ readability-lxml==0.7
 redash-dynamic-query==1.0.4
 requests==2.20.1
 requests-oauthlib==1.0.0
-rsa==4.0
+rsa==4.1
 six==1.11.0
 termcolor==1.1.0
 uritemplate==3.0.0
